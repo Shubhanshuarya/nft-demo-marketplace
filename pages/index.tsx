@@ -15,7 +15,7 @@ const Home: NextPage = () => {
   const router = useRouter();
   const { contract: marketplace } = useContract(marketplaceContractAddress, "marketplace-v3");
   const { data: listings, isLoading: loadingListings } = useDirectListings(marketplace);
-
+console.log("MarketplaceV3: ",marketplace)
   return (
     <>
       {/* Content */}

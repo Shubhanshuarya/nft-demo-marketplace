@@ -5,6 +5,7 @@ import {
   useListing,
   useContract,
   useDirectListing,
+  useEnglishAuction,
 } from "@thirdweb-dev/react";
 import {
   ChainId,
@@ -32,16 +33,26 @@ const ListingPage: NextPage = () => {
   const [, switchNetwork] = useNetwork();
 
   // Initialize the marketplace contract
-  const { contract: marketplace } = useContract(marketplaceContractAddress, "marketplace");
+  const { contract: marketplace } = useContract(marketplaceContractAddress,'marketplace-v3');
   console.log(marketplace)
 
   // Fetch the listing from the marketplace contract
-  const { data: listing, isLoading: loadingListing } = useListing(
+  const { data: listing, isLoading: loadingListing } = useDirectListing(
+    marketplace,
+    listingId
+  );
+  
+  const { data: listingAuction, isLoading: loadingAuctionListing } = useEnglishAuction(
     marketplace,
     listingId
   );
 
-  console.log(listing)
+
+
+  console.log("MarketplaceV3 contract: ",marketplace)
+
+  console.log("Listing id ",listingId)
+  console.log("Listing: ",listing)
 
   // Store the bid amount the user entered into the bidding textbox
   const [bidAmount, setBidAmount] = useState<string>("");
@@ -56,32 +67,43 @@ const ListingPage: NextPage = () => {
 
   async function createBidOrOffer() {
     try {
-      // Ensure user is on the correct network
+      console.log("Listing creator address: ",listing?.creatorAddress)
+      // Ensure the user is on the correct network
       if (networkMismatch) {
         switchNetwork && switchNetwork(ChainId.Goerli);
         return;
       }
 
-      // If the listing type is a direct listing, then we can create an offer.
-      if (listing?.type === ListingType.Direct) {
-        await marketplace?.direct.makeOffer(
-          listingId, // The listingId of the listing we want to make an offer for
-          1, // Quantity = 1
-          NATIVE_TOKENS[ChainId.Goerli].wrapped.address, // Wrapped Ether address on Goerli
-          bidAmount // The offer amount the user entered
-        );
-      }
+      // Ensure that bidAmount is not empty or invalid
+  
+      if (listing) {
+        // Create an offer using functions specific to your contract version
+        // Make sure to provide the correct parameters
+        const result = await marketplace?.offers.makeOffer({
+          assetContractAddress: listing.assetContractAddress, // Required - the contract address of the NFT to offer on
+          tokenId: listingId, // Required - the token ID to offer on
+          totalPrice: bidAmount, // Required - the price to offer in the currency specified
+          // currencyContractAddress: NATIVE_TOKENS[ChainId.Goerli].wrapped.address, // Optional - defaults to the native wrapped currency
+          // endTimestamp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10), // Optional - Defaults to 10 years from now
+          quantity: 1, 
+         });
 
-      // If the listing type is an auction listing, then we can create a bid.
-      if (listing?.type === ListingType.Auction) {
-        await marketplace?.auction.makeBid(listingId, bidAmount);
-      }
+        if (result) {
+          alert("Offer created successfully!");
+          // Optionally, update the component's state or UI to reflect the offer creation.
+        }
+      } else if (listingAuction) {
+        // Create a bid using functions specific to your contract version
+        // Make sure to provide the correct parameters
+        const result = await marketplace?.englishAuctions.makeBid(listingId,bidAmount);
 
-      alert(
-        `${
-          listing?.type === ListingType.Auction ? "Bid" : "Offer"
-        } created successfully!`
-      );
+        if (result) {
+          alert("Bid created successfully!");
+          // Optionally, update the component's state or UI to reflect the bid creation.
+        }
+      } else {
+        alert("Listing not found");
+      }
     } catch (error) {
       console.error(error);
       alert(error);
@@ -95,9 +117,7 @@ const ListingPage: NextPage = () => {
         switchNetwork && switchNetwork(ChainId.Goerli);
         return;
       }
-
-      // Simple one-liner for buying the NFT
-      // await marketplace?.buyoutListing(listingId, 1);
+       await marketplace?.directListings.buyFromListing(listingId, 1);
       alert("NFT bought successfully!");
     } catch (error) {
       console.error(error);
@@ -118,7 +138,7 @@ const ListingPage: NextPage = () => {
         <div className={styles.rightListing}>
           <h1>{listing.asset.name}</h1>
           <p>
-            Owned by{" "}
+            Owned by {listing.creatorAddress}
             {/* <b>
               {listing.sellerAddress?.slice(0, 6) +
                 "..." +

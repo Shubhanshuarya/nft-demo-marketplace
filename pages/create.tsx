@@ -20,8 +20,7 @@ const Create: NextPage = () => {
   const [, switchNetwork] = useNetwork();
 
   // Connect to our marketplace contract via the useContract hook
-  const { contract: marketplace } = useContract(marketplaceContractAddress, "marketplace");
-
+  const { contract: marketplace } = useContract(marketplaceContractAddress, "marketplace-v3");
   // This function gets called when the form is submitted.
   async function handleCreateListing(e: any) {
     try {
@@ -75,13 +74,12 @@ const Create: NextPage = () => {
     price: string
   ) {
     try {
-      const transaction = await marketplace?.auction.createListing({
+      const transaction = await marketplace?.directListings.createListing({
         assetContractAddress: contractAddress, // Contract Address of the NFT
-        buyoutPricePerToken: price, // Maximum price, the auction will end immediately if a user pays this price.
+        pricePerToken: price, // Maximum price, the auction will end immediately if a user pays this price.
         currencyContractAddress: NATIVE_TOKEN_ADDRESS, // NATIVE_TOKEN_ADDRESS is the crpyto curency that is native to the network. i.e. Goerli ETH.
-        listingDurationInSeconds: 60 * 60 * 24 * 7, // When the auction will be closed and no longer accept bids (1 Week)
+        endTimestamp: 60 * 60 * 24 * 7, // When the auction will be closed and no longer accept bids (1 Week)
         quantity: 1, // How many of the NFTs are being listed (useful for ERC 1155 tokens)
-        reservePricePerToken: 0, // Minimum price, users cannot bid below this amount
         startTimestamp: new Date(), // When the listing will start
         tokenId: tokenId, // Token ID of the NFT.
       });
@@ -98,11 +96,11 @@ const Create: NextPage = () => {
     price: string
   ) {
     try {
-      const transaction = await marketplace?.direct.createListing({
+      const transaction = await marketplace?.directListings.createListing({
         assetContractAddress: contractAddress, // Contract Address of the NFT
-        buyoutPricePerToken: price, // Maximum price, the auction will end immediately if a user pays this price.
+        pricePerToken: price, // Maximum price, the auction will end immediately if a user pays this price.
         currencyContractAddress: NATIVE_TOKEN_ADDRESS, // NATIVE_TOKEN_ADDRESS is the crpyto curency that is native to the network. i.e. Goerli ETH.
-        listingDurationInSeconds: 60 * 60 * 24 * 7, // When the auction will be closed and no longer accept bids (1 Week)
+        endTimestamp: 60 * 60 * 24 * 7, // When the auction will be closed and no longer accept bids (1 Week)
         quantity: 1, // How many of the NFTs are being listed (useful for ERC 1155 tokens)
         startTimestamp: new Date(0), // When the listing will start
         tokenId: tokenId, // Token ID of the NFT.
